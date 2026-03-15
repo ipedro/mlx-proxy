@@ -185,9 +185,7 @@ class TestProxyEndpoint:
         mock_client = self._make_mock_client()
 
         with (
-            patch(
-                "mlx_proxy.__main__.ensure_mlx_running", new_callable=AsyncMock
-            ) as mock_ensure,
+            patch("mlx_proxy.__main__.ensure_mlx_running", new_callable=AsyncMock) as mock_ensure,
             patch("mlx_proxy.__main__.httpx.AsyncClient", return_value=mock_client),
         ):
             client.post("/v1/chat/completions", json={"messages": []})
