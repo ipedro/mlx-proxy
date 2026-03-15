@@ -16,7 +16,6 @@ import pytest
 
 from mlx_proxy.__main__ import ensure_mlx_running, is_mlx_ready, state, stop_mlx, watchdog
 
-
 # ---------------------------------------------------------------------------
 # is_mlx_ready
 # ---------------------------------------------------------------------------
@@ -182,9 +181,9 @@ class TestWatchdog:
         with (
             patch("asyncio.sleep", side_effect=_make_one_shot_sleep()),
             patch("mlx_proxy.__main__.stop_mlx") as mock_stop,
+            pytest.raises(asyncio.CancelledError),
         ):
-            with pytest.raises(asyncio.CancelledError):
-                await watchdog()
+            await watchdog()
 
         mock_stop.assert_called_once()
 
@@ -198,9 +197,9 @@ class TestWatchdog:
         with (
             patch("asyncio.sleep", side_effect=_make_one_shot_sleep()),
             patch("mlx_proxy.__main__.stop_mlx") as mock_stop,
+            pytest.raises(asyncio.CancelledError),
         ):
-            with pytest.raises(asyncio.CancelledError):
-                await watchdog()
+            await watchdog()
 
         mock_stop.assert_not_called()
 
@@ -214,9 +213,9 @@ class TestWatchdog:
         with (
             patch("asyncio.sleep", side_effect=_make_one_shot_sleep()),
             patch("mlx_proxy.__main__.stop_mlx") as mock_stop,
+            pytest.raises(asyncio.CancelledError),
         ):
-            with pytest.raises(asyncio.CancelledError):
-                await watchdog()
+            await watchdog()
 
         mock_stop.assert_not_called()
 
@@ -230,9 +229,9 @@ class TestWatchdog:
         with (
             patch("asyncio.sleep", side_effect=_make_one_shot_sleep()),
             patch("mlx_proxy.__main__.stop_mlx") as mock_stop,
+            pytest.raises(asyncio.CancelledError),
         ):
-            with pytest.raises(asyncio.CancelledError):
-                await watchdog()
+            await watchdog()
 
         mock_stop.assert_not_called()
 
@@ -244,8 +243,8 @@ class TestWatchdog:
         with (
             patch("asyncio.sleep", side_effect=_make_one_shot_sleep()),
             patch("mlx_proxy.__main__.stop_mlx") as mock_stop,
+            pytest.raises(asyncio.CancelledError),
         ):
-            with pytest.raises(asyncio.CancelledError):
-                await watchdog()
+            await watchdog()
 
         mock_stop.assert_not_called()

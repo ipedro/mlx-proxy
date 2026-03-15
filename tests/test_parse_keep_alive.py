@@ -18,11 +18,11 @@ from mlx_proxy.__main__ import parse_keep_alive
         ("5m", 300),
         ("1h", 3600),
         ("2h", 7200),
-        ("120", 120),    # bare number defaults to seconds
-        ("0", 0),        # disabled
-        ("-1", -1),      # always keep alive
-        ("forever", -1), # alias for -1
-        ("  5m  ", 300), # surrounding whitespace is stripped
+        ("120", 120),  # bare number defaults to seconds
+        ("0", 0),  # disabled
+        ("-1", -1),  # always keep alive
+        ("forever", -1),  # alias for -1
+        ("  5m  ", 300),  # surrounding whitespace is stripped
     ],
 )
 def test_valid_values(value, expected):

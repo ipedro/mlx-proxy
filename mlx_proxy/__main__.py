@@ -9,12 +9,10 @@ import asyncio
 import logging
 import os
 import re
-import signal
 import subprocess
 import sys
 import time
 from contextlib import asynccontextmanager
-from typing import Optional
 
 import httpx
 from fastapi import FastAPI, Request, Response
@@ -31,22 +29,25 @@ log = logging.getLogger("mlx-proxy")
 # Global state
 # ---------------------------------------------------------------------------
 
+
 class ProxyState:
     def __init__(self):
-        self.mlx_process: Optional[subprocess.Popen] = None
+        self.mlx_process: subprocess.Popen | None = None
         self.last_activity: float = 0.0
         self.lock = asyncio.Lock()
         self.starting = False
         self.mlx_port: int = 11435
         self.keep_alive: int = 300  # seconds; 0 = disabled, -1 = always keep
         self.model: str = ""
-        self._watchdog_task: Optional[asyncio.Task] = None
+        self._watchdog_task: asyncio.Task | None = None
+
 
 state = ProxyState()
 
 # ---------------------------------------------------------------------------
 # MLX lifecycle
 # ---------------------------------------------------------------------------
+
 
 async def is_mlx_ready() -> bool:
     """Check if the MLX server is accepting connections."""
@@ -70,10 +71,15 @@ async def start_mlx() -> None:
         log.info("Starting MLX server (model=%s port=%d)…", state.model, state.mlx_port)
 
         cmd = [
-            sys.executable, "-m", "mlx_lm.server",
-            "--model", state.model,
-            "--port", str(state.mlx_port),
-            "--host", "127.0.0.1",
+            sys.executable,
+            "-m",
+            "mlx_lm.server",
+            "--model",
+            state.model,
+            "--port",
+            str(state.mlx_port),
+            "--host",
+            "127.0.0.1",
         ]
 
         try:
@@ -83,10 +89,10 @@ async def start_mlx() -> None:
                 stderr=subprocess.DEVNULL,
             )
             state.mlx_process = proc
-        except FileNotFoundError:
+        except FileNotFoundError as exc:
             log.error("mlx_lm not found. Install with: pip install mlx-lm")
             state.starting = False
-            raise RuntimeError("mlx_lm not installed")
+            raise RuntimeError("mlx_lm not installed") from exc
 
     # Wait up to 60 s for the server to be ready (outside lock)
     deadline = time.monotonic() + 60
@@ -126,6 +132,7 @@ async def ensure_mlx_running() -> None:
 # Inactivity watchdog
 # ---------------------------------------------------------------------------
 
+
 async def watchdog() -> None:
     """Periodically check inactivity and stop MLX if idle too long."""
     while True:
@@ -143,6 +150,7 @@ async def watchdog() -> None:
 # ---------------------------------------------------------------------------
 # FastAPI app
 # ---------------------------------------------------------------------------
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -193,13 +201,11 @@ async def _proxy(request: Request) -> Response:
         target_url += f"?{request.url.query}"
 
     body = await request.body()
-    headers = {
-        k: v for k, v in request.headers.items()
-        if k.lower() not in ("host", "content-length")
-    }
+    headers = {k: v for k, v in request.headers.items() if k.lower() not in ("host", "content-length")}
 
     # Detect streaming
     import json as _json
+
     is_stream = False
     try:
         payload = _json.loads(body)
@@ -210,6 +216,7 @@ async def _proxy(request: Request) -> Response:
     client = httpx.AsyncClient(timeout=httpx.Timeout(120.0))
 
     if is_stream:
+
         async def stream_gen():
             async with client.stream(
                 request.method,
@@ -253,6 +260,7 @@ async def proxy_v1(request: Request, path: str):
 # CLI entry point
 # ---------------------------------------------------------------------------
 
+
 def parse_keep_alive(value: str) -> int:
     """Parse keep-alive string like '5m', '30s', '0', '-1' into seconds."""
     value = value.strip()
@@ -268,21 +276,21 @@ def parse_keep_alive(value: str) -> int:
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="mlx-proxy — OpenAI-compatible proxy with MLX sleep/wake lifecycle"
+    parser = argparse.ArgumentParser(description="mlx-proxy — OpenAI-compatible proxy with MLX sleep/wake lifecycle")
+    parser.add_argument(
+        "--model",
+        default=os.environ.get("MLX_MODEL", ""),
+        help="MLX model name or path (required unless MLX_MODEL is set)",
     )
-    parser.add_argument("--model", default=os.environ.get("MLX_MODEL", ""),
-                        help="MLX model name or path (required unless MLX_MODEL is set)")
-    parser.add_argument("--port", type=int, default=11434,
-                        help="Proxy listen port (default: 11434)")
-    parser.add_argument("--mlx-port", type=int, default=11435,
-                        help="Internal MLX server port (default: 11435)")
-    parser.add_argument("--keep-alive", default="5m",
-                        help="Inactivity timeout before killing MLX (e.g. '5m', '30s', '0'=disable, '-1'=always keep)")
-    parser.add_argument("--host", default="127.0.0.1",
-                        help="Proxy bind host (default: 127.0.0.1)")
-    parser.add_argument("--log-level", default="info",
-                        choices=["debug", "info", "warning", "error"])
+    parser.add_argument("--port", type=int, default=11434, help="Proxy listen port (default: 11434)")
+    parser.add_argument("--mlx-port", type=int, default=11435, help="Internal MLX server port (default: 11435)")
+    parser.add_argument(
+        "--keep-alive",
+        default="5m",
+        help="Inactivity timeout before killing MLX (e.g. '5m', '30s', '0'=disable, '-1'=always keep)",
+    )
+    parser.add_argument("--host", default="127.0.0.1", help="Proxy bind host (default: 127.0.0.1)")
+    parser.add_argument("--log-level", default="info", choices=["debug", "info", "warning", "error"])
     args = parser.parse_args()
 
     if not args.model:
@@ -294,10 +302,12 @@ def main():
 
     logging.getLogger().setLevel(args.log_level.upper())
 
-    log.info("mlx-proxy starting on %s:%d → MLX on :%d (keep-alive=%s)",
-             args.host, args.port, args.mlx_port, args.keep_alive)
+    log.info(
+        "mlx-proxy starting on %s:%d → MLX on :%d (keep-alive=%s)", args.host, args.port, args.mlx_port, args.keep_alive
+    )
 
     import uvicorn
+
     uvicorn.run(app, host=args.host, port=args.port, log_level=args.log_level)
 
 
